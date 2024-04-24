@@ -18,7 +18,7 @@ socket.addEventListener("error", (error) => {
 });
 
 socket.addEventListener("message", (event) => {
-  const data = JSON.parse(event.toString());
+  const data = JSON.parse(event.data);
   console.log("[socket] Message:", data);
   const {
     TYPE: eventTypeStr,
@@ -29,6 +29,7 @@ socket.addEventListener("message", (event) => {
     P: tradePriceStr,
   } = data;
 
+  console.log("eventTypeStr", eventTypeStr);
   if (parseInt(eventTypeStr) !== 0) {
     // Skip all non-trading events
     return;
@@ -109,7 +110,10 @@ export function subscribeOnStream(
     action: "SubAdd",
     subs: [channelString],
   };
-  socket.send(JSON.stringify(subRequest));
+  console.log("[subscribeBars]: Send subscription request", subRequest);
+  setTimeout(() => {
+    socket.send(JSON.stringify(subRequest));
+  }, 3000);
 }
 
 export function unsubscribeFromStream(subscriberUID) {

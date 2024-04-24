@@ -6,7 +6,7 @@ const lastBarsCache = new Map();
 // DatafeedConfiguration implementation
 const configurationData = {
   // Represents the resolutions for bars supported by your datafeed
-  supported_resolutions: ["1D", "1W", "1M"],
+  supported_resolutions: ["1", "5", "30", "60", "1D", "1W"],
 
   // The `exchanges` arguments are used for the `searchSymbols` method if a user selects the exchange
   exchanges: [
@@ -27,30 +27,16 @@ const configurationData = {
 
 // Obtains all symbols for all exchanges supported by CryptoCompare API
 async function getAllSymbols() {
-  const data = await makeApiRequest("data/v3/all/exchanges");
-  let allSymbols = [];
-
-  for (const exchange of configurationData.exchanges) {
-    const pairs = data.Data[exchange.value].pairs;
-
-    for (const leftPairPart of Object.keys(pairs)) {
-      const symbols = pairs[leftPairPart].map((rightPairPart) => {
-        const symbol = generateSymbol(
-          exchange.value,
-          leftPairPart,
-          rightPairPart
-        );
-        return {
-          symbol: symbol.short,
-          full_name: symbol.full,
-          description: symbol.short,
-          exchange: exchange.value,
-          type: "crypto",
-        };
-      });
-      allSymbols = [...allSymbols, ...symbols];
-    }
-  }
+  const symbol = generateSymbol("Coinbase", "BTC", "USD");
+  let allSymbols = [
+    {
+      symbol: symbol.short,
+      full_name: symbol.full,
+      description: symbol.short,
+      exchange: "Coinbase",
+      type: "crypto",
+    },
+  ];
   return allSymbols;
 }
 
@@ -85,9 +71,11 @@ export default {
   ) => {
     console.log("[resolveSymbol]: Method call", symbolName);
     const symbols = await getAllSymbols();
+    console.log(symbols);
     const symbolItem = symbols.find(
       ({ full_name }) => full_name === symbolName
     );
+    console.log(symbolItem);
     if (!symbolItem) {
       console.log("[resolveSymbol]: Cannot resolve symbol", symbolName);
       onResolveErrorCallback("cannot resolve symbol");
@@ -112,7 +100,7 @@ export default {
       data_status: "streaming",
     };
 
-    console.log("[resolveSymbol]: Symbol resolved", symbolName);
+    console.log("[resolveSymbol]: Symbol resolved", symbolInfo);
     onSymbolResolvedCallback(symbolInfo);
   },
 
@@ -125,19 +113,11 @@ export default {
   ) => {
     const { from, to, firstDataRequest } = periodParams;
     console.log("[getBars]: Method call", symbolInfo, resolution, from, to);
-    const parsedSymbol = parseFullSymbol(symbolInfo.full_name);
-    const urlParameters = {
-      e: parsedSymbol.exchange,
-      fsym: parsedSymbol.fromSymbol,
-      tsym: parsedSymbol.toSymbol,
-      toTs: to,
-      limit: 2000,
-    };
-    const query = Object.keys(urlParameters)
-      .map((name) => `${name}=${encodeURIComponent(urlParameters[name])}`)
-      .join("&");
+
     try {
-      const data = await makeApiRequest(`data/histoday?${query}`);
+      const data = await makeApiRequest(
+        `data/histoday?e=coinbase&fsym=btc&tsym=usd`
+      );
       if (
         (data.Response && data.Response === "Error") ||
         data.Data.length === 0
